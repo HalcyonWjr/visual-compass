@@ -45,7 +45,7 @@
     try {
       rows = await d3.csv(dataUrl);
     } catch (err) {
-      error = err instanceof Error ? err.message : "Failed to load data.";
+      error = err instanceof Error ? err.message : "Failed to load data warning.";
     } finally {
       loading = false;
     }
