@@ -1,5 +1,6 @@
 <script>
   import { onMount } from "svelte";
+  import { base } from "$app/paths";
   import * as d3 from "d3";
   import dataUrl from "$lib/assets/data.csv?url";
 
@@ -68,7 +69,7 @@
           {/if}
         </p>
       </div>
-      <a class="back" href="/">Back home</a>
+      <a class="back" href={`${base}/`}>Back home</a>
     </header>
 
     <div class="view-toggle" role="group" aria-label="View options">

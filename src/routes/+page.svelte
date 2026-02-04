@@ -1,3 +1,7 @@
+<script>
+  import { base } from "$app/paths";
+</script>
+
 <svelte:head>
   <title>Visual Compass</title>
 </svelte:head>
@@ -6,7 +10,7 @@
   <div class="content">
     <h1>Visual Compass</h1>
     <p>Navigate the collection of visualizations.</p>
-    <a class="cta" href="/vis-collection">Vis Collection</a>
+    <a class="cta" href={`${base}/vis-collection`}>Vis Collection</a>
   </div>
 </section>
 
