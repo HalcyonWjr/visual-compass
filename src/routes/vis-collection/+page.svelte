@@ -1,13 +1,66 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import { base } from "$app/paths";
   import * as d3 from "d3";
   import dataUrl from "$lib/assets/data.csv?url";
+  import html2canvas from "html2canvas";
+  import JSZip from "jszip";
 
-  let rows = [];
+  let rows: any[] = [];
   let loading = true;
   let error = "";
   let view = "list";
+  let exporting = false;
+
+  async function renderCardToBlob(cardEl: HTMLElement): Promise<Blob> {
+    const canvas = await html2canvas(cardEl, {
+      useCORS: true,
+      allowTaint: true,
+      scale: 2,
+      backgroundColor: "#ffffff"
+    });
+    return new Promise((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
+  }
+
+  async function downloadFirstCard() {
+    const card = document.querySelector(".card");
+    if (!card) return;
+    exporting = true;
+    try {
+      const blob = await renderCardToBlob(card as HTMLElement);
+      const title = rows[0]?.Title?.replace(/[^a-z0-9]/gi, "-").toLowerCase() || "card-1";
+      const link = document.createElement("a");
+      link.download = `${title}.png`;
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } finally {
+      exporting = false;
+    }
+  }
+
+  async function downloadAllCards() {
+    const cards = document.querySelectorAll(".card");
+    if (!cards.length) return;
+    exporting = true;
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder("cards")!;
+      for (let i = 0; i < cards.length; i++) {
+        const title = rows[i]?.Title?.replace(/[^a-z0-9]/gi, "-").toLowerCase() || `card-${i + 1}`;
+        const blob = await renderCardToBlob(cards[i] as HTMLElement);
+        folder.file(`${title}.png`, blob);
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const link = document.createElement("a");
+      link.download = "cards.zip";
+      link.href = URL.createObjectURL(zipBlob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } finally {
+      exporting = false;
+    }
+  }
 
   const authorKey = "Author (& affliation) /Year/...";
   const embedKey = "Embed Link";
@@ -72,21 +125,41 @@
       <a class="back" href={`${base}/`}>Back home</a>
     </header>
 
-    <div class="view-toggle" role="group" aria-label="View options">
-      <button
-        type="button"
-        class:active={view === "list"}
-        on:click={() => (view = "list")}
-      >
-        List
-      </button>
-      <button
-        type="button"
-        class:active={view === "grid"}
-        on:click={() => (view = "grid")}
-      >
-        Grid
-      </button>
+    <div class="toolbar">
+      <div class="view-toggle" role="group" aria-label="View options">
+        <button
+          type="button"
+          class:active={view === "list"}
+          on:click={() => (view = "list")}
+        >
+          List
+        </button>
+        <button
+          type="button"
+          class:active={view === "grid"}
+          on:click={() => (view = "grid")}
+        >
+          Grid
+        </button>
+      </div>
+      <!-- <div class="export-buttons" role="group" aria-label="Export options">
+        <button
+          type="button"
+          class="export-btn"
+          disabled={loading || exporting}
+          on:click={downloadFirstCard}
+        >
+          {exporting ? "Exporting…" : "Export first card"}
+        </button>
+        <button
+          type="button"
+          class="export-btn"
+          disabled={loading || exporting}
+          on:click={downloadAllCards}
+        >
+          {exporting ? "Exporting…" : "Export all cards"}
+        </button>
+      </div> -->
     </div>
 
     {#if error}
@@ -174,10 +247,43 @@
     color: #000;
   }
 
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0 0 1.5rem 0;
+  }
+
+  .export-buttons {
+    display: inline-flex;
+    gap: 0.5rem;
+  }
+
+  .export-btn {
+    border: 1px solid #111;
+    background: transparent;
+    color: #111;
+    padding: 0.35rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+  }
+
+  .export-btn:hover:not(:disabled) {
+    background: #111;
+    color: #fff;
+  }
+
+  .export-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
   .view-toggle {
     display: inline-flex;
     gap: 0.5rem;
-    margin: 0 0 1.5rem 0;
   }
 
   .view-toggle button {
